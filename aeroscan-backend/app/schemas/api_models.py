@@ -6,24 +6,18 @@ from pydantic import BaseModel, Field
 
 
 class ScanResponse(BaseModel):
-    """
-    Public API contract returned to the Next.js frontend.
-
-    Deliberately does NOT include `image_bytes` - the router strips that key
-    out of the graph's final state before this model is constructed, so raw
-    document bytes never leave the server in the JSON response.
-    """
-
-    model_config = {"extra": "ignore"}  # tolerate extra internal state keys defensively
+    model_config = {"extra": "ignore"} 
 
     file_name: str
     document_type: Optional[str] = None
 
-    ocr_confidence: Optional[float] = None
-    extracted_fields: Optional[Dict[str, Any]] = None
+    viz_data: Optional[Dict[str, Any]] = None       
+    mrz_data: Optional[Dict[str, Any]] = None       
+    mrz_decoded: Optional[Dict[str, Any]] = None    
 
-    mrz_valid: Optional[bool] = None
+    mrz_checksum_valid: Optional[bool] = None
     mrz_checksum_results: Optional[Dict[str, bool]] = None
+    cross_check_mismatches: Optional[List[str]] = None
     field_cross_check_passed: Optional[bool] = None
 
     tampering_score: Optional[float] = None
