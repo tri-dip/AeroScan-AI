@@ -7,6 +7,7 @@ from typing import Annotated, Any, Dict, List, Optional, TypedDict
 class ScanState(TypedDict, total=False):
     file_name: str
     image_bytes: bytes
+    selfie_image_bytes: bytes
     document_type: Optional[str]
 
     viz_data: Optional[Dict[str, Any]]

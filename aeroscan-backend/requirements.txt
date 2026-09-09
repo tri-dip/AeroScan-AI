@@ -4,3 +4,7 @@ python-multipart
 langgraph
 langchain-core
 pydantic
+google-genai
+numpy
+onnxruntime
+pillow
