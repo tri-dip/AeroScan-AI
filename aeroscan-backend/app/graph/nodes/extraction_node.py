@@ -3,39 +3,41 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from app.graph.state import ScanState
+from app.services.ocr_service import OCRExtractionError, extract_document_data
 
 
+async def extraction_node(state: ScanState) -> Dict[str, Any]:
+    file_name = state.get("file_name")
+    image_bytes = state.get("image_bytes", b"")
+    print(f"[extraction_node] processing '{file_name}' ({len(image_bytes)} bytes)")
 
-def extraction_node(state: ScanState) -> Dict[str, Any]:
-    """
-    AGENT: Extraction
-    Turns raw image_bytes into raw OCR text, raw MRZ lines, and structured fields.
-    First node in the graph - runs alone, before the parallel fan-out.
-    """
-    print(f"[extraction_node] processing '{state.get('file_name')}' "
-          f"({len(state.get('image_bytes', b''))} bytes)")
+    try:
+        raw = await extract_document_data(image_bytes)
+    except OCRExtractionError as exc:
+        print(f"[extraction_node] extraction FAILED: {exc}")
+        return {
+            "viz_data": None,
+            "mrz_data": None,
+            "errors": [f"OCR extraction failed: {exc}"],
+            "flags": ["EXTRACTION_FAILED"],
+            "node_trace": ["extraction_node"],
+        }
 
-    mock_ocr_text = (
-        "REPUBLIC OF EXAMPLAND\nPASSPORT\nDOE, JOHN\n"
-        "P<EXMDOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n"
-        "L898902C36EXM7408122M1204159<<<<<<<<<<<<<06"
-    )
+    viz_data = {
+        "first_name": raw["viz_first_name"],
+        "last_name": raw["viz_last_name"],
+        "document_number": raw["viz_document_number"],
+        "dob": raw["viz_dob"],
+        "expiry": raw["viz_expiry"],
+        "sex": raw["viz_sex"],
+    }
+    mrz_data = {
+        "mrz_line1": raw["mrz_line1"],
+        "mrz_line2": raw["mrz_line2"],
+    }
 
     return {
-        "ocr_raw_text": mock_ocr_text,
-        "ocr_confidence": 0.94,
-        "mrz_raw_lines": [
-            "P<EXMDOE<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<<",
-            "L898902C36EXM7408122M1204159<<<<<<<<<<<<<06",
-        ],
-        "extracted_fields": {
-            "surname": "DOE",
-            "given_names": "JOHN",
-            "document_number": "L898902C3",
-            "nationality": "EXM",
-            "date_of_birth": "1974-08-12",
-            "sex": "M",
-            "expiry_date": "2012-04-15",
-        },
+        "viz_data": viz_data,
+        "mrz_data": mrz_data,
         "node_trace": ["extraction_node"],
     }
