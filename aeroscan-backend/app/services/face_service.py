@@ -63,6 +63,7 @@ class FaceMatchResult:
     score: float  # 0-100, higher = more similar
     verified: bool
     cosine_similarity: float
+    document_face_bbox: Optional[List[int]] = None  # [x1,y1,x2,y2] pixel coords in the DOCUMENT image
 
 
 def _model_cache_dir() -> Path:
@@ -205,8 +206,8 @@ def _letterbox(img: np.ndarray, target_size: Tuple[int, int]) -> Tuple[np.ndarra
     return canvas, scale
 
 
-def _detect_largest_face(img: np.ndarray) -> Tuple[np.ndarray, float]:
-    """Returns (5x2 landmarks, detection_score) for the largest detected face."""
+def _detect_largest_face(img: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
+    """Returns (bbox [x1,y1,x2,y2], 5x2 landmarks, detection_score) for the largest detected face."""
     detector, _ = _Models.get()
 
     blob_img, scale = _letterbox(img, _DETECTOR_INPUT_SIZE)
@@ -264,7 +265,7 @@ def _detect_largest_face(img: np.ndarray) -> Tuple[np.ndarray, float]:
     areas = (kept_bboxes[:, 2] - kept_bboxes[:, 0]) * (kept_bboxes[:, 3] - kept_bboxes[:, 1])
     largest_idx = int(np.argmax(areas))
 
-    return kept_kpss[largest_idx], float(kept_scores[largest_idx])
+    return kept_bboxes[largest_idx], kept_kpss[largest_idx], float(kept_scores[largest_idx])
 
 
 def _umeyama_similarity_transform(src: np.ndarray, dst: np.ndarray) -> np.ndarray:
@@ -325,11 +326,13 @@ def _embed_face(aligned_face: np.ndarray) -> np.ndarray:
     return embedding / norm
 
 
-def _face_embedding(image_bytes: bytes) -> np.ndarray:
+def _face_embedding(image_bytes: bytes) -> Tuple[np.ndarray, List[int]]:
     img = _decode_image(image_bytes)
-    landmarks, _det_score = _detect_largest_face(img)
+    bbox, landmarks, _det_score = _detect_largest_face(img)
     aligned = _align_face(img, landmarks)
-    return _embed_face(aligned)
+    embedding = _embed_face(aligned)
+    bbox_int = [int(round(v)) for v in bbox.tolist()]
+    return embedding, bbox_int
 
 
 def _compare_faces_sync(document_image_bytes: bytes, live_image_bytes: bytes) -> FaceMatchResult:
@@ -338,8 +341,8 @@ def _compare_faces_sync(document_image_bytes: bytes, live_image_bytes: bytes) ->
     if not live_image_bytes:
         raise FaceServiceError("Live/selfie image is empty.")
 
-    doc_embedding = _face_embedding(document_image_bytes)
-    live_embedding = _face_embedding(live_image_bytes)
+    doc_embedding, doc_bbox = _face_embedding(document_image_bytes)
+    live_embedding, _live_bbox = _face_embedding(live_image_bytes)
 
     cosine_similarity = float(np.dot(doc_embedding, live_embedding))
     # Map cosine similarity ([-1, 1], realistically ~[0, 0.7] for faces) onto a
@@ -347,7 +350,32 @@ def _compare_faces_sync(document_image_bytes: bytes, live_image_bytes: bytes) ->
     score = max(0.0, min(1.0, (cosine_similarity + 1.0) / 2.0)) * 100.0
     verified = cosine_similarity >= _MATCH_THRESHOLD
 
-    return FaceMatchResult(score=round(score, 2), verified=verified, cosine_similarity=round(cosine_similarity, 4))
+    return FaceMatchResult(
+        score=round(score, 2),
+        verified=verified,
+        cosine_similarity=round(cosine_similarity, 4),
+        document_face_bbox=doc_bbox,
+    )
+
+
+def _detect_primary_face_bbox_sync(image_bytes: bytes) -> List[int]:
+    """Face LOCATION only, no embedding/alignment - see detect_primary_face_bbox()."""
+    img = _decode_image(image_bytes)
+    bbox, _landmarks, _det_score = _detect_largest_face(img)
+    return [int(round(v)) for v in bbox.tolist()]
+
+
+async def detect_primary_face_bbox(image_bytes: bytes) -> List[int]:
+    """
+    Lightweight face-detection-only entrypoint (no embedding/alignment/comparison).
+    Lets callers - e.g. ela_service's photo-splice check via forensics_node - get a
+    document's face bounding box even when a full face-match comparison isn't being
+    run (no selfie provided, or the match itself failed for some other reason), so
+    that degradation doesn't also silently disable the tampering check.
+
+    Raises FaceServiceError if no face is found, same as compare_faces().
+    """
+    return await asyncio.to_thread(_detect_primary_face_bbox_sync, image_bytes)
 
 
 async def compare_faces(document_image_bytes: bytes, live_image_bytes: bytes) -> FaceMatchResult:
