@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { TamperedRegion } from "@/lib/types";
 import { cx } from "@/lib/utils";
-import { ScanEye } from "lucide-react";
+import { Flame, ScanEye } from "lucide-react";
 
 const severityRing: Record<TamperedRegion["severity"], string> = {
   high: "border-red-500 shadow-[0_0_0_2px_rgba(239,68,68,0.25),0_0_18px_rgba(239,68,68,0.55)]",
@@ -21,11 +21,14 @@ const severityDot: Record<TamperedRegion["severity"], string> = {
 export default function AIViewer({
   imageUrl,
   tamperedRegions,
+  heatmapUrl,
 }: {
   imageUrl: string;
   tamperedRegions: TamperedRegion[];
+  heatmapUrl?: string | null;
 }) {
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   return (
     <div className="flex h-full flex-col rounded-lg border border-slate-200 bg-white shadow-panel">
@@ -34,16 +37,32 @@ export default function AIViewer({
           <ScanEye className="h-4 w-4 text-slate-500" />
           <h2 className="text-sm font-semibold text-slate-900">Forensic Viewer</h2>
         </div>
-        <span
-          className={cx(
-            "rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset",
-            tamperedRegions.length > 0
-              ? "bg-red-50 text-red-600 ring-red-600/20"
-              : "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+        <div className="flex items-center gap-2">
+          {heatmapUrl && (
+            <button
+              onClick={() => setShowHeatmap((v) => !v)}
+              className={cx(
+                "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset transition-colors",
+                showHeatmap
+                  ? "bg-checkpoint-cyan/10 text-checkpoint-cyan ring-checkpoint-cyan/30"
+                  : "bg-slate-50 text-slate-500 ring-slate-500/20 hover:bg-slate-100"
+              )}
+            >
+              <Flame className="h-3 w-3" />
+              ELA Heatmap
+            </button>
           )}
-        >
-          {tamperedRegions.length} anomalies flagged
-        </span>
+          <span
+            className={cx(
+              "rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset",
+              tamperedRegions.length > 0
+                ? "bg-red-50 text-red-600 ring-red-600/20"
+                : "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+            )}
+          >
+            {tamperedRegions.length} anomalies flagged
+          </span>
+        </div>
       </div>
 
       <div className="relative flex-1 overflow-hidden tech-grid p-4">
@@ -53,8 +72,18 @@ export default function AIViewer({
             alt="Uploaded identity document"
             fill
             unoptimized
-            className="object-cover opacity-90"
+            className="object-contain opacity-90"
           />
+
+          {showHeatmap && heatmapUrl && (
+            <Image
+              src={heatmapUrl}
+              alt="Error-level analysis heatmap"
+              fill
+              unoptimized
+              className="object-contain opacity-70 mix-blend-screen"
+            />
+          )}
 
           {/* Simulated active scan sweep */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">

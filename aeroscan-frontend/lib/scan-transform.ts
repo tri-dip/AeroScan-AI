@@ -1,4 +1,4 @@
-import { FieldComparison, RiskFactor, ScanApiResponse } from "./types";
+import { FieldComparison, RiskFactor, ScanApiResponse, TamperedRegion } from "./types";
 
 function normalize(value: unknown): string {
   return String(value ?? "")
@@ -64,9 +64,57 @@ export function buildRiskFactors(res: ScanApiResponse): RiskFactor[] {
     },
     {
       label: "Document Forensics",
-      detail: "Error-level analysis tampering score",
+      detail: describeForensicsFlags(res.flags),
       score: Math.round(Math.max(0, 100 - tampering)),
       status: tampering < 30 ? "pass" : tampering < 60 ? "warn" : "fail",
+    },
+  ];
+}
+
+const FORENSICS_FLAG_TEXT: Record<string, string> = {
+  ELA_ANOMALY_DETECTED: "compression-error hotspots",
+  SUSPICIOUS_PHOTO_SEAM: "sharp edge around the portrait boundary",
+  PHOTO_ELA_MISMATCH: "compression mismatch on the portrait",
+  LOCALIZED_NOISE_ANOMALY: "irregular sensor-noise pattern",
+};
+
+function describeForensicsFlags(flags: string[]): string {
+  const hits = flags.map((f) => FORENSICS_FLAG_TEXT[f]).filter(Boolean);
+  return hits.length > 0
+    ? `Error-level analysis detected: ${hits.join(", ")}.`
+    : "Error-level analysis found no compression or noise anomalies.";
+}
+
+const FACE_REGION_FLAGS: Record<string, string> = {
+  SUSPICIOUS_PHOTO_SEAM: "sharp edge discontinuity around the portrait boundary",
+  PHOTO_ELA_MISMATCH: "compression-history mismatch between the portrait and the surrounding document",
+  FACE_MATCH_FAILED: "does not match the live selfie capture",
+};
+
+export function buildTamperedRegions(
+  res: ScanApiResponse,
+  imageSize: { width: number; height: number }
+): TamperedRegion[] {
+  const bbox = res.face_match_bbox;
+  if (!bbox || bbox.length !== 4 || !imageSize.width || !imageSize.height) return [];
+
+  const hitFlags = res.flags.filter((f) => f in FACE_REGION_FLAGS);
+  if (hitFlags.length === 0) return [];
+
+  const [x1, y1, x2, y2] = bbox;
+  const severity: TamperedRegion["severity"] = hitFlags.length > 1 ? "high" : "medium";
+
+  return [
+    {
+      id: "face-region",
+      label: "Portrait Region Anomaly",
+      detail: `Detected: ${hitFlags.map((f) => FACE_REGION_FLAGS[f]).join("; ")}.`,
+      confidence: Math.round(res.tampering_score ?? 0),
+      left: (x1 / imageSize.width) * 100,
+      top: (y1 / imageSize.height) * 100,
+      width: ((x2 - x1) / imageSize.width) * 100,
+      height: ((y2 - y1) / imageSize.height) * 100,
+      severity,
     },
   ];
 }

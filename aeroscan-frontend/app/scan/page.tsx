@@ -10,7 +10,12 @@ import ExtractedData from "@/components/ExtractedData";
 import RiskScorePanel from "@/components/RiskScorePanel";
 import DecisionBanner from "@/components/DecisionBanner";
 import { scanDocument, ScanApiError } from "@/lib/api";
-import { buildFieldComparisons, buildRiskFactors, mapDecision } from "@/lib/scan-transform";
+import {
+  buildFieldComparisons,
+  buildRiskFactors,
+  buildTamperedRegions,
+  mapDecision,
+} from "@/lib/scan-transform";
 import { ScanApiResponse, WorkflowState } from "@/lib/types";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 
@@ -21,6 +26,7 @@ export default function ScanPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [decision, setDecision] = useState<"approve" | "inspect" | "reject" | null>(null);
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
   const imageUrl = useMemo(
     () => (documentFile ? URL.createObjectURL(documentFile) : null),
@@ -32,6 +38,23 @@ export default function ScanPage() {
       if (imageUrl) URL.revokeObjectURL(imageUrl);
     };
   }, [imageUrl]);
+
+  useEffect(() => {
+    if (!documentFile) {
+      setImageSize(null);
+      return;
+    }
+    let cancelled = false;
+    createImageBitmap(documentFile)
+      .then((bitmap) => {
+        if (!cancelled) setImageSize({ width: bitmap.width, height: bitmap.height });
+        bitmap.close();
+      })
+      .catch(() => setImageSize(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [documentFile]);
 
   function handleFileSelected(file: File | null) {
     if (!file) return;
@@ -70,6 +93,7 @@ export default function ScanPage() {
   const riskFactors = result ? buildRiskFactors(result) : [];
   const riskScore = result?.risk_score != null ? Math.round(result.risk_score) : 0;
   const recommendedDecision = result ? mapDecision(result.final_decision) : null;
+  const tamperedRegions = result && imageSize ? buildTamperedRegions(result, imageSize) : [];
 
   return (
     <>
@@ -152,7 +176,11 @@ export default function ScanPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
               <div className="lg:col-span-5">
                 <div className="h-[560px]">
-                  <AIViewer imageUrl={imageUrl ?? ""} tamperedRegions={[]} />
+                  <AIViewer
+                    imageUrl={imageUrl ?? ""}
+                    tamperedRegions={tamperedRegions}
+                    heatmapUrl={result.ela_heatmap_base64}
+                  />
                 </div>
               </div>
               <div className="lg:col-span-4">

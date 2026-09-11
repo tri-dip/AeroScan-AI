@@ -54,6 +54,7 @@ export type WorkflowState = "idle" | "selfie" | "scanning" | "results" | "error"
 export interface ScanApiResponse {
   file_name: string;
   document_type: string | null;
+  station_id: string | null;
 
   viz_data: Record<string, string | null> | null;
   mrz_data: Record<string, string | null> | null;
@@ -67,7 +68,9 @@ export interface ScanApiResponse {
   tampering_score: number | null;
   ela_heatmap_base64: string | null;
   face_match_score: number | null;
+  face_match_similarity: number | null;
   face_match_verified: boolean | null;
+  face_match_bbox: [number, number, number, number] | null;
 
   risk_level: string | null;
   risk_score: number | null;
