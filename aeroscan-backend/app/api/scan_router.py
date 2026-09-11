@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.graph.state import ScanState
 from app.graph.workflow import scan_graph
@@ -38,6 +38,12 @@ async def scan_document(
     selfie: UploadFile = File(
         ..., description="A live/real-time capture of the user's face, taken on the platform."
     ),
+    document_type: str | None = Form(
+        None, description="Optional hint, e.g. 'passport'. Accepted and echoed back; not yet used to branch extraction logic (TD3/passport MRZ only for now)."
+    ),
+    station_id: str | None = Form(
+        None, description="Optional caller-supplied audit/traceability tag (e.g. kiosk or checkpoint ID). Echoed back unmodified; not validated or interpreted by the backend."
+    ),
 ) -> ScanResponse:
     """
     Accepts a multipart/form-data document image plus a live selfie capture,
@@ -52,7 +58,8 @@ async def scan_document(
         "file_name": file.filename or "unknown",
         "image_bytes": image_bytes,
         "selfie_image_bytes": selfie_bytes,
-        "document_type": None,
+        "document_type": document_type,
+        "station_id": station_id,
         "flags": [],
         "errors": [],
         "node_trace": [],
