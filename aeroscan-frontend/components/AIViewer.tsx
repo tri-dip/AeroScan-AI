@@ -22,10 +22,12 @@ export default function AIViewer({
   imageUrl,
   tamperedRegions,
   heatmapUrl,
+  selfieUrl,
 }: {
   imageUrl: string;
   tamperedRegions: TamperedRegion[];
   heatmapUrl?: string | null;
+  selfieUrl?: string | null;
 }) {
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -89,6 +91,23 @@ export default function AIViewer({
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="absolute left-0 right-0 h-16 bg-gradient-to-b from-cyan-400/0 via-cyan-300/25 to-cyan-400/0 animate-scanline" />
           </div>
+
+          {selfieUrl && (
+            <div className="absolute bottom-2 right-2 w-16 overflow-hidden rounded-md border-2 border-white/80 shadow-lg sm:w-20">
+              <div className="relative aspect-square">
+                <Image
+                  src={selfieUrl}
+                  alt="Live selfie capture"
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
+              <div className="bg-slate-900/80 py-0.5 text-center text-[9px] font-medium uppercase tracking-wide text-white">
+                Live Capture
+              </div>
+            </div>
+          )}
 
           {tamperedRegions.map((region) => (
             <div

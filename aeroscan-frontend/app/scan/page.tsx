@@ -22,6 +22,7 @@ import { AlertTriangle, RotateCcw } from "lucide-react";
 export default function ScanPage() {
   const [state, setState] = useState<WorkflowState>("idle");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [selfieFile, setSelfieFile] = useState<Blob | null>(null);
   const [result, setResult] = useState<ScanApiResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [decision, setDecision] = useState<"approve" | "inspect" | "reject" | null>(null);
@@ -32,12 +33,22 @@ export default function ScanPage() {
     () => (documentFile ? URL.createObjectURL(documentFile) : null),
     [documentFile]
   );
+  const selfieUrl = useMemo(
+    () => (selfieFile ? URL.createObjectURL(selfieFile) : null),
+    [selfieFile]
+  );
 
   useEffect(() => {
     return () => {
       if (imageUrl) URL.revokeObjectURL(imageUrl);
     };
   }, [imageUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (selfieUrl) URL.revokeObjectURL(selfieUrl);
+    };
+  }, [selfieUrl]);
 
   useEffect(() => {
     if (!documentFile) {
@@ -66,6 +77,7 @@ export default function ScanPage() {
 
   async function handleSelfieCaptured(selfie: Blob) {
     if (!documentFile) return;
+    setSelfieFile(selfie);
     setState("scanning");
     setSubmittedAt(new Date().toISOString());
 
@@ -84,6 +96,7 @@ export default function ScanPage() {
   function reset() {
     setState("idle");
     setDocumentFile(null);
+    setSelfieFile(null);
     setResult(null);
     setDecision(null);
     setErrorMessage(null);
@@ -180,6 +193,7 @@ export default function ScanPage() {
                     imageUrl={imageUrl ?? ""}
                     tamperedRegions={tamperedRegions}
                     heatmapUrl={result.ela_heatmap_base64}
+                    selfieUrl={selfieUrl}
                   />
                 </div>
               </div>
