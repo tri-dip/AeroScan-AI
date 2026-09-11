@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,10 +14,18 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Next.js dev server origin - adjust/restrict for production
+# Comma-separated list of allowed frontend origins, e.g.
+# "https://app.example.com,https://staging.example.com". Defaults to the
+# Next.js dev server origin for local development.
+_allowed_origins = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
