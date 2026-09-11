@@ -21,6 +21,14 @@ def supervisor_node(state: ScanState) -> Dict[str, Any]:
     face_match_score = state.get("face_match_score")
     if face_match_score is None:
         face_match_score = 0.0
+    flags = state.get("flags", [])
+
+    # Direct, specific evidence that the document's own photo was pasted/altered
+    # (as opposed to generic compression noise, which is far more prone to false
+    # positives on low-quality scans) - weighted comparably to a failed face
+    # match, since a substituted portrait is itself a forged-document signal.
+    photo_tamper_flags = {"SUSPICIOUS_PHOTO_SEAM", "PHOTO_ELA_MISMATCH"}
+    photo_splice_detected = bool(photo_tamper_flags.intersection(flags))
 
     risk_score = 0.0
     if not mrz_checksum_valid:
@@ -29,7 +37,14 @@ def supervisor_node(state: ScanState) -> Dict[str, Any]:
         risk_score += 20
     if not face_match_verified:
         risk_score += 50
-    risk_score += min(tampering_score, 100) * 0.10
+    # Was 0.10 - a maxed-out tampering_score of 100 could only ever add 10
+    # points, meaning a confirmed photo splice could never clear even the LOW
+    # risk threshold on its own. 0.30 lets tampering evidence actually move
+    # the needle in line with the other checks.
+    risk_score += min(tampering_score, 100) * 0.30
+    if photo_splice_detected:
+        risk_score += 40
+    risk_score = min(risk_score, 100.0)
 
     if risk_score < 20:
         risk_level, decision = "LOW", "APPROVE"
@@ -43,7 +58,9 @@ def supervisor_node(state: ScanState) -> Dict[str, Any]:
     brief = (
         f"MRZ checksum validity={mrz_checksum_valid}, VIZ/MRZ cross-check passed={field_cross_check_passed}, "
         f"face match verified={face_match_verified} (score={face_match_score:.1f}%), "
-        f"tampering score={tampering_score:.1f}/100. Aggregate risk={risk_score:.1f}/100 -> {risk_level}."
+        f"tampering score={tampering_score:.1f}/100"
+        f"{', photo splice detected' if photo_splice_detected else ''}. "
+        f"Aggregate risk={risk_score:.1f}/100 -> {risk_level}."
     )
 
     return {
