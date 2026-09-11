@@ -11,6 +11,7 @@ dependencies = [
     "langgraph>=1.2.11",
     "numpy>=2.5.3",
     "onnxruntime>=1.29.0",
+    "opencv-python-headless>=4.11.0",
     "pillow>=12.3.0",
     "pydantic>=2.13.5",
     "python-multipart>=0.0.32",

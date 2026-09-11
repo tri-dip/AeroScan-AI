@@ -15,8 +15,12 @@ def supervisor_node(state: ScanState) -> Dict[str, Any]:
     mrz_checksum_valid = state.get("mrz_checksum_valid", False)
     field_cross_check_passed = state.get("field_cross_check_passed", False)
     face_match_verified = state.get("face_match_verified", False)
-    tampering_score = state.get("tampering_score", 100.0) or 100.0
-    face_match_score = state.get("face_match_score", 0.0) or 0.0
+    tampering_score = state.get("tampering_score")
+    if tampering_score is None:
+        tampering_score = 100.0
+    face_match_score = state.get("face_match_score")
+    if face_match_score is None:
+        face_match_score = 0.0
 
     risk_score = 0.0
     if not mrz_checksum_valid:
