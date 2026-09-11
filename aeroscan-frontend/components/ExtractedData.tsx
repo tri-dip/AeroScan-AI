@@ -12,7 +12,12 @@ export default function ExtractedData({ fields }: { fields: FieldComparison[] })
           <FileScan className="h-4 w-4 text-slate-500" />
           <h2 className="text-sm font-semibold text-slate-900">Data Cross-Check</h2>
         </div>
-        {mismatchCount > 0 ? (
+        {fields.length === 0 ? (
+          <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-inset ring-slate-500/20">
+            <AlertTriangle className="h-3 w-3" />
+            No data extracted
+          </span>
+        ) : mismatchCount > 0 ? (
           <span className="flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-medium text-red-600 ring-1 ring-inset ring-red-600/20">
             <AlertTriangle className="h-3 w-3" />
             {mismatchCount} mismatch{mismatchCount > 1 ? "es" : ""}
@@ -31,6 +36,11 @@ export default function ExtractedData({ fields }: { fields: FieldComparison[] })
       </div>
 
       <div className="scrollbar-thin flex-1 divide-y divide-slate-100 overflow-y-auto">
+        {fields.length === 0 && (
+          <p className="px-4 py-6 text-center text-xs text-slate-400">
+            No VIZ or MRZ fields could be extracted from this document.
+          </p>
+        )}
         {fields.map((field) => (
           <div
             key={field.field}

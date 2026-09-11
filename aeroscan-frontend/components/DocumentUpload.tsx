@@ -55,7 +55,7 @@ export default function DocumentUpload({ onFileSelected }: DocumentUploadProps) 
             Drop document image here, or click to browse
           </p>
           <p className="mt-1 text-xs text-slate-400">
-            Supports JPG, PNG, PDF up to 10MB
+            Supports JPG, PNG up to 10MB
           </p>
         </div>
         <button
@@ -67,18 +67,11 @@ export default function DocumentUpload({ onFileSelected }: DocumentUploadProps) 
         <input
           ref={inputRef}
           type="file"
-          accept="image/*,.pdf"
+          accept="image/jpeg,image/png"
           className="hidden"
           onChange={(e) => onFileSelected(e.target.files?.[0] ?? null)}
         />
       </div>
-
-      <button
-        onClick={() => onFileSelected(new File([], "demo-passport.jpg"))}
-        className="text-xs font-medium text-checkpoint-cyan hover:underline"
-      >
-        Use sample document instead →
-      </button>
     </div>
   );
 }

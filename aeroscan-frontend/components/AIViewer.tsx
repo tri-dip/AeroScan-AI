@@ -34,7 +34,14 @@ export default function AIViewer({
           <ScanEye className="h-4 w-4 text-slate-500" />
           <h2 className="text-sm font-semibold text-slate-900">Forensic Viewer</h2>
         </div>
-        <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-medium text-red-600 ring-1 ring-inset ring-red-600/20">
+        <span
+          className={cx(
+            "rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset",
+            tamperedRegions.length > 0
+              ? "bg-red-50 text-red-600 ring-red-600/20"
+              : "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+          )}
+        >
           {tamperedRegions.length} anomalies flagged
         </span>
       </div>

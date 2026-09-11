@@ -20,10 +20,22 @@ const statusIcon = {
 interface RiskScorePanelProps {
   score: number;
   factors: RiskFactor[];
+  recommendation?: "approve" | "inspect" | "reject" | null;
   onDecision: (decision: "approve" | "inspect" | "reject") => void;
 }
 
-export default function RiskScorePanel({ score, factors, onDecision }: RiskScorePanelProps) {
+const recommendationLabel: Record<"approve" | "inspect" | "reject", string> = {
+  approve: "Approve",
+  inspect: "Manual Review",
+  reject: "Reject",
+};
+
+export default function RiskScorePanel({
+  score,
+  factors,
+  recommendation,
+  onDecision,
+}: RiskScorePanelProps) {
   const tier = riskTier(score);
   const style = tierStyles[tier];
   const chartData = [{ name: "risk", value: score, fill: style.fill }];
@@ -65,6 +77,14 @@ export default function RiskScorePanel({ score, factors, onDecision }: RiskScore
         >
           {tier === "high" ? "High Risk" : tier === "medium" ? "Elevated Risk" : "Low Risk"}
         </span>
+        {recommendation && (
+          <p className="mt-2 text-[11px] text-slate-400">
+            AI Recommendation:{" "}
+            <span className="font-medium text-slate-600">
+              {recommendationLabel[recommendation]}
+            </span>
+          </p>
+        )}
       </div>
 
       <div className="scrollbar-thin flex-1 space-y-1 overflow-y-auto px-4 py-3">

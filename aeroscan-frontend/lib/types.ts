@@ -48,4 +48,33 @@ export interface DocumentCase {
   verdictHint: "approve" | "inspect" | "reject";
 }
 
-export type WorkflowState = "idle" | "scanning" | "results";
+export type WorkflowState = "idle" | "selfie" | "scanning" | "results" | "error";
+
+// Mirrors aeroscan-backend's app.schemas.api_models.ScanResponse.
+export interface ScanApiResponse {
+  file_name: string;
+  document_type: string | null;
+
+  viz_data: Record<string, string | null> | null;
+  mrz_data: Record<string, string | null> | null;
+  mrz_decoded: Record<string, string | null> | null;
+
+  mrz_checksum_valid: boolean | null;
+  mrz_checksum_results: Record<string, boolean> | null;
+  cross_check_mismatches: string[] | null;
+  field_cross_check_passed: boolean | null;
+
+  tampering_score: number | null;
+  ela_heatmap_base64: string | null;
+  face_match_score: number | null;
+  face_match_verified: boolean | null;
+
+  risk_level: string | null;
+  risk_score: number | null;
+  risk_brief: string | null;
+  final_decision: string | null;
+
+  flags: string[];
+  errors: string[];
+  node_trace: string[];
+}
