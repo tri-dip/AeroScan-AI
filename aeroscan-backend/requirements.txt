@@ -4,7 +4,18 @@ python-multipart
 langgraph
 langchain-core
 pydantic
+python-dotenv
+
+# Phase 2: Module 1 (OCR/extraction) now uses Gemini instead of PaddleOCR
 google-genai
-numpy
+
+# Phase 2: Module 4 (forensics: face match) - real dependencies for face_service.py.
+# Uses raw onnxruntime + InsightFace's buffalo_l ONNX model pack (downloaded at
+# first use, cached under ~/.cache/aeroscan-ai/models) instead of the deepface/
+# opencv/tf-keras chain, which has no Python 3.14 wheels yet.
 onnxruntime
+numpy
 pillow
+
+# Phase 2: Module 3 (forensics: tampering/ELA) - real dependency for ela_service.py
+opencv-python-headless
